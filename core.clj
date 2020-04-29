@@ -20,8 +20,7 @@
       )
   )
 
-
-  (defn create-argamoeba
+  (defn argamoeba
       [
           low-energy
           divide-energy
@@ -59,7 +58,14 @@
                                   ]
 
                                   (if (empty? empty-nb)       ;; no empty neighbors?
-                                      {:cmd :rest}            ;; hunker down, we can't move --- FIXME: perhaps we should hit someone?
+                                      (let
+                                          [hs  (hostiles species Neighbors env)]      ;; hostile neighbors
+
+                                          (if (empty? hs)                             ;; nobody to hit?
+                                              {:cmd :rest}                              ;; eat
+                                              {:cmd :hit :dir (Neighbor-To-Dir (select-target hs species env))}   ;; KAPOW!
+                                          )
+                                      )            ;; hunker down, we can't move --- FIXME: perhaps we should hit someone?
                                       {:cmd :move :dir (last by-fuel)}    ;; move toward the most fuel
                                   )
                               )
@@ -81,17 +87,18 @@
                               )
                           )
                   do-div  (fn [empty-nb]
+                    (println divide-energy)
                     (if (<= (rand) mutation-rate)
                         {:cmd :divide :dir (rand-nth empty-nb)
                          :function
-                            (create-argamoeba
+                            (argamoeba
                                 (bound MoveEnergy (+ low-energy (rand-int (inc (* 2 mutation-range))) (- mutation-range)) MaxAmoebaEnergy)
-                                (bound MinDivideEnergy (+ divide-energy (rand-int (inc (* 2 mutation-range))) (- mutation-range)) MaxAmoebaEnergy)
+                                (bound MinDivideEnergy (if (< divide-energy 85) (+ 2 divide-energy) divide-energy) MaxAmoebaEnergy)
                                 select-target
                                 mutation-rate
                                 mutation-range
                                 edge-limit) }
-                        {:cmd :divide :dir (rand-nth empty-nb) }
+                        {:cmd :divide :dir (first (sections-by-friendlies Dirs env species )) }
                     )
                     )
 
@@ -103,6 +110,16 @@
               (cond
                   (< energy low-energy)           ;; need some chow?
                       (do-fuel)
+                  (< divide-energy 50)
+                    (let
+                        [empty-nb   (empty-neighbors env)]
+
+                        (if (empty? empty-nb)       ;; nowhere to put that crib?
+                            (do-move)                ;; then screw parenthood, run away
+                            (do-div empty-nb)
+                                  ;; oooh, look, it's... an amoeba :-(
+                        )
+                    )
                   (< divide-energy energy)               ;; parenthood!
                       (let
                           [empty-nb   (empty-neighbors env)]
@@ -120,6 +137,5 @@
           )
       )
   )
-
 
 (def Evam (create-argamoeba 10 15 most-energy-target-selector 0.9 1 0.5))
