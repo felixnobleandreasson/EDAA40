@@ -138,4 +138,4 @@
       )
   )
 
-(def Evam (create-argamoeba 10 15 most-energy-target-selector 0.9 1 0.5))
+(def Evam (create-argamoeba 10 15 most-energy-and-fuel-target-selector 0.9 1 0.5))
