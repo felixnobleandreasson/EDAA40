@@ -19,8 +19,7 @@
           (last (sort-by #(energy-and-fuel (env %)) hs))
       )
   )
-
-  (defn argamoeba
+  (defn create-argamoeba
       [
           low-energy
           divide-energy
@@ -76,6 +75,7 @@
                                   (do-move)                                   ;; otherwise, keep looking
                               )
                           )
+
                   do-hit  (fn []
                               (let
                                   [hs  (hostiles species Neighbors env)]      ;; hostile neighbors
@@ -87,13 +87,14 @@
                               )
                           )
                   do-div  (fn [empty-nb]
-                    (println divide-energy)
                     (if (<= (rand) mutation-rate)
+
+
                         {:cmd :divide :dir (rand-nth empty-nb)
                          :function
-                            (argamoeba
+                            (create-m
                                 (bound MoveEnergy (+ low-energy (rand-int (inc (* 2 mutation-range))) (- mutation-range)) MaxAmoebaEnergy)
-                                (bound MinDivideEnergy (if (< divide-energy 85) (+ 2 divide-energy) divide-energy) MaxAmoebaEnergy)
+                                (bound MinDivideEnergy (if (< divide-energy 85) (+ 10 divide-energy) divide-energy) MaxAmoebaEnergy)
                                 select-target
                                 mutation-rate
                                 mutation-range
@@ -108,9 +109,16 @@
               ]
 
               (cond
+
                   (< energy low-energy)           ;; need some chow?
+                  (if (= 1 (rand-int 2))
                       (do-fuel)
-                  (< divide-energy 50)
+                      (do-move)
+                      )
+                  (< energy 5)
+                    {:cmd :rest} ;;suicide function
+                  (< energy 50)
+
                     (let
                         [empty-nb   (empty-neighbors env)]
 
@@ -131,6 +139,7 @@
                       )
                   (hostiles species Neighbors env)            ;; someone looking at us funny?
                       (do-hit)                    ;; whack 'em
+
                   :else
                       (do-fuel)                   ;; let's eat some more
               )
@@ -138,4 +147,4 @@
       )
   )
 
-(def Evam (create-argamoeba 10 15 most-energy-and-fuel-target-selector 0.9 1 0.5))
+(def Evam (create-argamoeba 10 15 most-energy-and-fuel-target-selector 0.3 1 0.5))
